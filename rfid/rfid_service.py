@@ -1,11 +1,12 @@
-#import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 import time
-#from mfrc522 import SimpleMFRC522
+from mfrc522 import SimpleMFRC522
 import sys
 
 from entities.door import Door
 from entities.user import User, UserOperations
 from entities.groups import Group, GroupOperations
+from entities.transponder import Transponder
 
 class RFID:
 
@@ -16,23 +17,52 @@ class RFID:
         # Konfiguration des SPI Interfaces - siehe SPI Dokumentation/en
         GPIO.setmode(GPIO.BOARD)
         GPIO.setwarnings(False) # Deaktiviert Warnungen
-        GPIO.setup(37, GPIO.OUT)
-        GPIO.setup(35, GPIO.OUT)
-        GPIO.output(37, GPIO.LOW)
-        GPIO.output(35, GPIO.LOW)
+        GPIO.setup(33, GPIO.OUT) # Blau
+        GPIO.setup(35, GPIO.OUT) # Grün
+        GPIO.setup(37, GPIO.OUT) # Rot
+
+        GPIO.output(33, GPIO.HIGH) # Blau
+        GPIO.output(35, GPIO.LOW) # Grün
+        GPIO.output(37, GPIO.LOW) # Rot
 
         is_running = True
         print('Waiting for input!')
 
         reader = SimpleMFRC522()
-
+        current_user = None
         while is_running:
-            id, content = reader.read()
+            try:
+                GPIO.output(33, GPIO.HIGH) # Blau
+                GPIO.output(35, GPIO.LOW) # Grün
+                GPIO.output(37, GPIO.LOW) # Rot
+                id, content = reader.read()
 
-            print(f'id: {id}')
-            print(f'content: {content}')
-
-            # TODO implement check logic, if user has access to this door
+                if id is not None:
+                    # Diese Logik wurde eingebaut, damit der aktuelle benutzer "gecached" wird bis ein anderer Benutzer angefragt wird
+                    if current_user is None or current_user.transponder is not content:
+                        transponder = Transponder(content)
+                        current_user = UserOperations.get_user_from_transponder(transponder)
+                    
+                    if UserOperations.has_door_access(current_user, self.door):
+                        GPIO.output(33, GPIO.LOW) # Blau
+                        GPIO.output(35, GPIO.HIGH) # Grün
+                        GPIO.output(37, GPIO.LOW) # Rot
+                        print('ACCESS_GRANTED')
+                        time.sleep(5)
+                    else:
+                        GPIO.output(33, GPIO.LOW) # Blau
+                        GPIO.output(35, GPIO.LOW) # Grün
+                        GPIO.output(37, GPIO.HIGH) # Rot
+                        print('ACCESS_DENIED')
+                        time.sleep(5)
+            except Exception:
+                GPIO.output(33, GPIO.LOW) # Blau
+                GPIO.output(35, GPIO.LOW) # Grün
+                GPIO.output(37, GPIO.HIGH) # Rot
+                time.sleep(5)
+            except KeyboardInterrupt as e:
+                GPIO.cleanup()
+                raise e
 
 class RFIDOperational:
 

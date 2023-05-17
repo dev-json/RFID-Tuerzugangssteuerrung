@@ -114,8 +114,8 @@ class UserOperations:
 
     @classmethod
     def has_door_access(cls, user:User, door:Door):
-        has_access = query(f'SELECT COUNT(*) FROM nutzer_tuer_zugriff ntz INNER JOIN nutzer n ON n.id = ntz.nutzer_id INNER JOIN tuer t ON t.id = ntz.tuer_id WHERE n.nutzer_no = \'{user.user_no}\' AND t.id = \'{door.id}\'')[0][0]
-        if has_access > 0:
+        has_access = query(f'SELECT erlaubt FROM nutzer_tuer_zugriff ntz INNER JOIN nutzer n ON n.id = ntz.nutzer_id INNER JOIN tuer t ON t.id = ntz.tuer_id WHERE n.nutzer_no = \'{user.user_no}\' AND t.id = \'{door.id}\'')[0][0]
+        if has_access == '1' or has_access == 1:
             return True
         else:
             return False
@@ -127,3 +127,9 @@ class UserOperations:
     @classmethod
     def remove_door_access(cls, user:User, door:Door):
         execute(f'DELETE FROM nutzer_tuer_zugriff WHERE tuer_id = \'{door.id}\' AND nutzer_id = \'{user.id}\'')
+
+    @classmethod
+    def get_user_from_transponder(cls, transponder:Transponder):
+        user_from_transponder = query(f'SELECT nutzer_no FROM nutzer WHERE transponder_id = \'{transponder.id}\'')[0][0]
+        user = User(user_from_transponder)
+        return user
