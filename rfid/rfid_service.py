@@ -7,6 +7,7 @@ from entities.door import Door
 from entities.user import User, UserOperations
 from entities.groups import Group, GroupOperations
 from entities.transponder import Transponder
+from entities.door_log import DoorLogOperational
 
 class RFID:
 
@@ -50,6 +51,9 @@ class RFID:
                         print('ACCESS_GRANTED')
                         time.sleep(5)
                     else:
+
+                        DoorLogOperational.write_log_entry(self.door.id, current_user.id, 'ACCESS_ATTEMPT_FAILED')
+                        
                         GPIO.output(33, GPIO.LOW) # Blau
                         GPIO.output(35, GPIO.LOW) # Grün
                         GPIO.output(37, GPIO.HIGH) # Rot
