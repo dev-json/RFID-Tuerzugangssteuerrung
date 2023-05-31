@@ -43,5 +43,5 @@ def execute(sql):
         with con.cursor() as cur:
             if enable_logging == True:
                 print(f'[LOG] - {sql}')
-                cur.execute(sql)
+            cur.execute(sql)
             con.commit()
